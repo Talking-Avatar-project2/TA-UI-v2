@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="NONE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="6730ecfe-aadb-42f7-bc2d-024aaed25752" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/ta_ui_new/lib/ui/api_endpoints.dart" beforeDir="false" afterPath="$PROJECT_DIR$/ta_ui_new/lib/ui/api_endpoints.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ta_ui_new/lib/ui/screens/avatar_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/ta_ui_new/lib/ui/screens/avatar_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ta_ui_new/lib/ui/screens/camera_permission_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/ta_ui_new/lib/ui/screens/camera_permission_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ta_ui_new/linux/flutter/generated_plugin_registrant.cc" beforeDir="false" afterPath="$PROJECT_DIR$/ta_ui_new/linux/flutter/generated_plugin_registrant.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ta_ui_new/linux/flutter/generated_plugin_registrant.h" beforeDir="false" afterPath="$PROJECT_DIR$/ta_ui_new/linux/flutter/generated_plugin_registrant.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ta_ui_new/linux/flutter/generated_plugins.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/ta_ui_new/linux/flutter/generated_plugins.cmake" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ta_ui_new/macos/Flutter/GeneratedPluginRegistrant.swift" beforeDir="false" afterPath="$PROJECT_DIR$/ta_ui_new/macos/Flutter/GeneratedPluginRegistrant.swift" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ta_ui_new/pubspec.lock" beforeDir="false" afterPath="$PROJECT_DIR$/ta_ui_new/pubspec.lock" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ta_ui_new/pubspec.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/ta_ui_new/pubspec.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ta_ui_new/pubspec_old.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/ta_ui_new/windows/flutter/generated_plugin_registrant.cc" beforeDir="false" afterPath="$PROJECT_DIR$/ta_ui_new/windows/flutter/generated_plugin_registrant.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ta_ui_new/windows/flutter/generated_plugin_registrant.h" beforeDir="false" afterPath="$PROJECT_DIR$/ta_ui_new/windows/flutter/generated_plugin_registrant.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ta_ui_new/windows/flutter/generated_plugins.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/ta_ui_new/windows/flutter/generated_plugins.cmake" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ClangdSettings">
+    <option name="formatViaClangd" value="false" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 3
+}</component>
+  <component name="ProjectId" id="35l0c9VVZyflCAd7EcoNSsnTTMd" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager": "true",
+    "RunOnceActivity.cidr.known.project.marker": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.readMode.enableVisualFormatting": "true",
+    "cf.first.check.clang-format": "false",
+    "cidr.known.project.marker": "true",
+    "dart.analysis.tool.window.visible": "false",
+    "git-widget-placeholder": "main",
+    "last_opened_file_path": "C:/Users/alvar/Documents/GitHub/TA-UI-v2",
+    "project.structure.last.edited": "Project",
+    "project.structure.proportion": "0.15",
+    "project.structure.side.proportion": "0.0",
+    "settings.editor.selected.configurable": "dart.settings",
+    "show.migrate.to.gradle.popup": "false"
+  }
+}]]></component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="6730ecfe-aadb-42f7-bc2d-024aaed25752" name="Changes" comment="" />
+      <created>1763669428247</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1763669428247</updated>
+    </task>
+    <servers />
+  </component>
+</project>

@@ -1,19 +1,24 @@
+// lib/ui/screens/camera_permission_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class CameraPermissionScreen extends StatelessWidget {
   const CameraPermissionScreen({super.key});
 
-  Future<void> _requestCameraPermission(BuildContext context) async {
-    final status = await Permission.camera.request();
-    if (status.isGranted) {
-      // Si el permiso es otorgado, redirige a la pantalla del avatar
+  Future<void> _requestPermissions(BuildContext context) async {
+    final camStatus = await Permission.camera.request();
+    final micStatus = await Permission.microphone.request();
+
+    if (camStatus.isGranted && micStatus.isGranted) {
+      // Si ambos permisos son otorgados, redirige a la pantalla del avatar
       Navigator.pushReplacementNamed(context, '/avatar');
     } else {
-      // Si el permiso es denegado, muestra un mensaje
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("El permiso de cámara es necesario para usar el avatar."),
+          content: Text(
+            "La app necesita acceso a cámara y micrófono para usar el avatar.",
+          ),
         ),
       );
     }
@@ -25,8 +30,8 @@ class CameraPermissionScreen extends StatelessWidget {
       appBar: AppBar(title: const Text("Activación de Cámara")),
       body: Center(
         child: ElevatedButton(
-          onPressed: () => _requestCameraPermission(context),
-          child: const Text("ACTIVAR CÁMARA"),
+          onPressed: () => _requestPermissions(context),
+          child: const Text("ACTIVAR CÁMARA Y MICRÓFONO"),
         ),
       ),
     );
