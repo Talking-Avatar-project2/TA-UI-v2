@@ -1,7 +1,45 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  String? _profileImageUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfileImage();
+  }
+
+  /// Carga la URL de la foto de perfil
+  Future<void> _loadProfileImage() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedUrl = prefs.getString('profile_image_url');
+    if (savedUrl != null && mounted) {
+      setState(() {
+        _profileImageUrl = savedUrl;
+      });
+    }
+    else{
+      setState(() {
+        _profileImageUrl = null;
+      });
+    }
+  }
+
+  /// Recarga la foto cuando se vuelve a esta pantalla
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Recargar la foto cada vez que se regresa a esta pantalla
+    _loadProfileImage();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,14 +61,22 @@ class HomeScreen extends StatelessWidget {
                 end: Alignment.bottomCenter,
               ),
             ),
-            child: const Column(
+            child: Column(
               children: [
-                CircleAvatar(
-                  radius: 50,
-                  backgroundImage: AssetImage('assets/images/profile_placeholder.png'),
+                // Foto de perfil dinámica
+                GestureDetector(
+                  onTap: () async {
+                    // Navegar a perfil y recargar al volver
+                    await Navigator.pushNamed(context, '/profile');
+                    _loadProfileImage(); // Recargar después de volver
+                  },
+                  child: CircleAvatar(
+                    radius: 50,
+                    backgroundImage: _getProfileImage(),
+                  ),
                 ),
-                SizedBox(height: 10),
-                Text(
+                const SizedBox(height: 10),
+                const Text(
                   "Usuario",
                   style: TextStyle(
                     fontSize: 20,
@@ -44,7 +90,7 @@ class HomeScreen extends StatelessWidget {
 
           // Espacio para las opciones en cuadrícula
           Expanded(
-            child: SafeArea( // Asegura que no se corte en dispositivos con notch o barra de navegación
+            child: SafeArea(
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: GridView.count(
@@ -104,11 +150,24 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
+  /// Obtiene la imagen de perfil a mostrar
+  ImageProvider _getProfileImage() {
+    if (_profileImageUrl != null && _profileImageUrl!.isNotEmpty) {
+      return NetworkImage(_profileImageUrl!);
+    }else{
+      return const AssetImage('assets/images/profile_placeholder.png');
+    }
+  }
+
   Widget _buildGridOption(
       BuildContext context, String title, IconData icon, Color color, String route) {
     return GestureDetector(
-      onTap: () {
-        Navigator.pushNamed(context, route);
+      onTap: () async {
+        await Navigator.pushNamed(context, route);
+        // Recargar foto si vuelve de perfil
+        if (route == '/profile') {
+          _loadProfileImage();
+        }
       },
       child: Container(
         decoration: BoxDecoration(
@@ -116,7 +175,7 @@ class HomeScreen extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.5),
+              color: Colors.grey.withValues(alpha: 0.5),
               blurRadius: 5,
               offset: const Offset(0, 3),
             ),

@@ -132,4 +132,8 @@ class ApiEndpoints {
   // Reconocimiento facial (rutas reales del backend)
   static String get facialRecognition => '$baseUrl/recognition/recognize';
   static String get facialRecognitionStream => '$baseUrl/recognition/stream';
+
+  // Perfil de usuario
+  static String get profileUploadPhoto => '$baseUrl/profile/upload-photo';
+  static String get profileDeletePhoto => '$baseUrl/profile/delete-photo';
 }
