@@ -5,19 +5,13 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="6730ecfe-aadb-42f7-bc2d-024aaed25752" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/ta_ui_new/lib/ui/api_endpoints.dart" beforeDir="false" afterPath="$PROJECT_DIR$/ta_ui_new/lib/ui/api_endpoints.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ta_ui_new/lib/ui/screens/avatar_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/ta_ui_new/lib/ui/screens/avatar_screen.dart" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ta_ui_new/lib/ui/screens/camera_permission_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/ta_ui_new/lib/ui/screens/camera_permission_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ta_ui_new/linux/flutter/generated_plugin_registrant.cc" beforeDir="false" afterPath="$PROJECT_DIR$/ta_ui_new/linux/flutter/generated_plugin_registrant.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ta_ui_new/linux/flutter/generated_plugin_registrant.h" beforeDir="false" afterPath="$PROJECT_DIR$/ta_ui_new/linux/flutter/generated_plugin_registrant.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ta_ui_new/linux/flutter/generated_plugins.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/ta_ui_new/linux/flutter/generated_plugins.cmake" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ta_ui_new/macos/Flutter/GeneratedPluginRegistrant.swift" beforeDir="false" afterPath="$PROJECT_DIR$/ta_ui_new/macos/Flutter/GeneratedPluginRegistrant.swift" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ta_ui_new/pubspec.lock" beforeDir="false" afterPath="$PROJECT_DIR$/ta_ui_new/pubspec.lock" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ta_ui_new/lib/ui/screens/chatbot_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/ta_ui_new/lib/ui/screens/chatbot_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ta_ui_new/lib/ui/screens/livekit_avatar_player_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/ta_ui_new/lib/ui/screens/livekit_avatar_player_screen.dart" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ta_ui_new/pubspec.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/ta_ui_new/pubspec.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ta_ui_new/pubspec_old.yaml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/ta_ui_new/windows/flutter/generated_plugin_registrant.cc" beforeDir="false" afterPath="$PROJECT_DIR$/ta_ui_new/windows/flutter/generated_plugin_registrant.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ta_ui_new/windows/flutter/generated_plugin_registrant.h" beforeDir="false" afterPath="$PROJECT_DIR$/ta_ui_new/windows/flutter/generated_plugin_registrant.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ta_ui_new/windows/flutter/generated_plugins.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/ta_ui_new/windows/flutter/generated_plugins.cmake" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ta_ui_new/test/widget_test.dart" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -26,6 +20,13 @@
   </component>
   <component name="ClangdSettings">
     <option name="formatViaClangd" value="false" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Dart File" />
+      </list>
+    </option>
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -49,12 +50,12 @@
     "cf.first.check.clang-format": "false",
     "cidr.known.project.marker": "true",
     "dart.analysis.tool.window.visible": "false",
-    "git-widget-placeholder": "main",
+    "git-widget-placeholder": "feature/core-v1",
     "last_opened_file_path": "C:/Users/alvar/Documents/GitHub/TA-UI-v2",
     "project.structure.last.edited": "Project",
     "project.structure.proportion": "0.15",
     "project.structure.side.proportion": "0.0",
-    "settings.editor.selected.configurable": "dart.settings",
+    "settings.editor.selected.configurable": "flutter.settings",
     "show.migrate.to.gradle.popup": "false"
   }
 }]]></component>

@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class CameraPermissionScreen extends StatelessWidget {
-  const CameraPermissionScreen({super.key});
+  const CameraPermissionScreen({Key? key}) : super(key: key);
 
   Future<void> _requestPermissions(BuildContext context) async {
     final camStatus = await Permission.camera.request();

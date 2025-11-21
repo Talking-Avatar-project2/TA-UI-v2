@@ -18,7 +18,6 @@ class _AvatarScreenState extends State<AvatarScreen> {
   bool _isBusy = false;
   bool _sessionActive = false;
 
-  String? _sessionId;
   String? _sessionToken;
   String? _livekitUrl;
   String? _livekitClientToken;
@@ -37,12 +36,15 @@ class _AvatarScreenState extends State<AvatarScreen> {
       _lastError = message;
       _isBusy = false;
     });
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
-  // 1) Crear token de sesión
+  // ---------------------------------------------------------------------------
+  // 1) Crear session token
+  // ---------------------------------------------------------------------------
   Future<void> _createSessionToken() async {
     _setBusy(true);
 
@@ -66,7 +68,6 @@ class _AvatarScreenState extends State<AvatarScreen> {
       final session = data['session'] ?? {};
 
       setState(() {
-        _sessionId = session['session_id'];
         _sessionToken = session['session_token'];
       });
 
@@ -76,9 +77,10 @@ class _AvatarScreenState extends State<AvatarScreen> {
     }
   }
 
-  // 2) Start session (y luego abrir LiveKit)
+  // ---------------------------------------------------------------------------
+  // 2) Start session
+  // ---------------------------------------------------------------------------
   Future<void> _startSession() async {
-    // si no hay token todavía, lo creamos
     if (_sessionToken == null) {
       await _createSessionToken();
       if (_sessionToken == null) {
@@ -117,7 +119,6 @@ class _AvatarScreenState extends State<AvatarScreen> {
 
       _setBusy(false);
 
-      // Si tenemos URL y token => abrimos la pantalla LiveKit
       if (_livekitUrl != null && _livekitClientToken != null) {
         Navigator.push(
           context,
@@ -129,14 +130,16 @@ class _AvatarScreenState extends State<AvatarScreen> {
           ),
         );
       } else {
-        _setError("La API no devolvió livekit_url o livekit_client_token.");
+        _setError("La API no devolvió datos de LiveKit.");
       }
     } catch (e) {
       _setError("Error de conexión al iniciar sesión: $e");
     }
   }
 
-  // 3) Stop session (backend + limpiar estado)
+  // ---------------------------------------------------------------------------
+  // 3) Stop session
+  // ---------------------------------------------------------------------------
   Future<void> _stopSession() async {
     if (!_sessionActive) {
       _setError("No hay sesión activa para detener.");
@@ -163,7 +166,6 @@ class _AvatarScreenState extends State<AvatarScreen> {
 
       setState(() {
         _sessionActive = false;
-        _sessionId = null;
         _sessionToken = null;
         _livekitUrl = null;
         _livekitClientToken = null;
@@ -172,40 +174,42 @@ class _AvatarScreenState extends State<AvatarScreen> {
       _setBusy(false);
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Sesión detenida correctamente.")),
+        const SnackBar(content: Text("Sesión terminada correctamente.")),
       );
     } catch (e) {
       _setError("Error de conexión al detener sesión: $e");
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // UI
+  // ---------------------------------------------------------------------------
   @override
   Widget build(BuildContext context) {
     final sessionText = _sessionActive
-        ? "Sesión ACTIVA\nsession_id: $_sessionId"
-        : "Sesión inactiva\nCrea e inicia una sesión para obtener LiveKit.";
+        ? "Sesión activa."
+        : "Sesión inactiva.\nPresiona comenzar para iniciar.";
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Avatar Interactivo (LiveAvatar)")),
+      appBar: AppBar(title: const Text("Avatar Interactivo")),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
             Card(
               child: ListTile(
-                title: Text(
-                  _sessionActive ? "Sesión ACTIVA" : "Sesión inactiva",
-                ),
+                title: Text(_sessionActive ? "Sesión ACTIVA" : "Sesión inactiva"),
                 subtitle: Text(sessionText),
                 trailing: _isBusy
                     ? const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
                     : null,
               ),
             ),
+
             const SizedBox(height: 16),
 
             Row(
@@ -227,24 +231,7 @@ class _AvatarScreenState extends State<AvatarScreen> {
               ],
             ),
 
-            const SizedBox(height: 24),
-
-            if (_livekitUrl != null && _livekitClientToken != null) ...[
-              const Text(
-                "LiveKit listo (para integrar video/voz):",
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Text("livekit_url:\n$_livekitUrl"),
-              const SizedBox(height: 8),
-              Text(
-                "livekit_client_token:\n$_livekitClientToken",
-                maxLines: 4,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
 
             if (_lastError != null)
               Text(_lastError!, style: const TextStyle(color: Colors.red)),
@@ -252,8 +239,8 @@ class _AvatarScreenState extends State<AvatarScreen> {
             const Spacer(),
 
             const Text(
-              "En esta versión free el avatar piensa por su cuenta (contexto remoto). "
-              "En tu tesis, el texto vendrá de chatbot_management y se mandará como avatar.speak_text.",
+              "El avatar se controla mediante LiveKit.\n"
+                  "La conversación continúa mientras la sesión esté activa.",
               textAlign: TextAlign.center,
             ),
           ],
