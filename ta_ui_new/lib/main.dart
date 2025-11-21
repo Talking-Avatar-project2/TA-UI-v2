@@ -56,9 +56,11 @@ class MyApp extends StatelessWidget {
         '/chatbot': (context) => const ChatbotScreen(),
         '/camera': (context) => const CameraPermissionScreen(),
         '/avatar': (context) => const AvatarScreen(),
-        '/recommendations': (context) => const PlaceholderScreen("Recomendaciones"),
-        '/progress': (context) => const PlaceholderScreen("Progreso"),
-        '/evaluation': (context) => const PlaceholderScreen("Evaluación"),
+        '/recommendations': (context) =>
+        const PlaceholderScreen("Recomendaciones"),
+        '/progress': (context) => const ProgressScreen(),
+        '/evaluation': (context) =>
+        const PlaceholderScreen("Evaluación"),
         '/profile': (context) => const ProfileScreen(),
         '/settings': (context) => const SettingsScreen(),
         '/login': (_) => LoginScreen(),
@@ -70,7 +72,6 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// PlaceholderScreen para pantallas en desarrollo
 class PlaceholderScreen extends StatelessWidget {
   final String title;
 
