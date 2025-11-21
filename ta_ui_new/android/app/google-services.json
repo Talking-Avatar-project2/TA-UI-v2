@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "781681997781",
+    "project_id": "danassistant-d00bd",
+    "storage_bucket": "danassistant-d00bd.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:781681997781:android:989962c8567eb7d64eaf5c",
+        "android_client_info": {
+          "package_name": "com.assistant.ta_ui"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCPrMGY6CX6IE3C3Un5x9YMsW8Fdq18mOo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:781681997781:android:36509eb997c9c74d4eaf5c",
+        "android_client_info": {
+          "package_name": "com.example.ta_ui_new"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCPrMGY6CX6IE3C3Un5x9YMsW8Fdq18mOo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

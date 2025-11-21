@@ -1,11 +1,22 @@
 import 'package:flutter/material.dart';
-import 'ui/screens/home_screen.dart';
-import 'ui/screens/camera_permission_screen.dart';
-import 'ui/screens/chatbot_screen.dart';
-import 'ui/screens/avatar_screen.dart';
-import 'ui/screens/profile_screen.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
-void main() {
+import 'package:ta_ui_new/ui/screens/progress_screen.dart';
+import 'package:ta_ui_new/ui/screens/home_screen.dart';
+import 'package:ta_ui_new/ui/screens/camera_permission_screen.dart';
+import 'package:ta_ui_new/ui/screens/chatbot_screen.dart';
+import 'package:ta_ui_new/ui/screens/avatar_screen.dart';
+import 'package:ta_ui_new/ui/screens/profile_screen.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Inicializar Firebase
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
   runApp(const MyApp());
 }
 
@@ -19,23 +30,22 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      // Define la pantalla inicial
       home: const HomeScreen(),
-      // Define las rutas
       routes: {
         '/chatbot': (context) => const ChatbotScreen(),
         '/camera': (context) => const CameraPermissionScreen(),
         '/avatar': (context) => const AvatarScreen(),
-        '/recommendations': (context) => const PlaceholderScreen("Recomendaciones"),
-        '/progress': (context) => const PlaceholderScreen("Progreso"),
-        '/evaluation': (context) => const PlaceholderScreen("Evaluación"),
+        '/recommendations': (context) =>
+        const PlaceholderScreen("Recomendaciones"),
+        '/progress': (context) => const ProgressScreen(),
+        '/evaluation': (context) =>
+        const PlaceholderScreen("Evaluación"),
         '/profile': (context) => const ProfileScreen(),
       },
     );
   }
 }
 
-// PlaceholderScreen para pantallas en desarrollo
 class PlaceholderScreen extends StatelessWidget {
   final String title;
 
