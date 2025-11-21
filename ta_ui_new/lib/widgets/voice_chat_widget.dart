@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:record/record.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -109,9 +110,15 @@ class _VoiceChatWidgetState extends State<VoiceChatWidget> {
         return;
       }
 
-      // Crear ruta temporal para el archivo
-      final tempDir = Directory.systemTemp;
-      _currentRecordingPath = '${tempDir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.wav';
+      // Configurar path según plataforma
+      if (kIsWeb) {
+        // En Web, usamos un path dummy (el paquete lo ignora y usa blob)
+        _currentRecordingPath = 'audio_${DateTime.now().millisecondsSinceEpoch}.wav';
+      } else {
+        // En plataformas nativas, crear ruta temporal real
+        final tempDir = Directory.systemTemp;
+        _currentRecordingPath = '${tempDir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.wav';
+      }
 
       // Iniciar grabación
       await _recorder.start(
@@ -137,7 +144,7 @@ class _VoiceChatWidgetState extends State<VoiceChatWidget> {
     try {
       final path = await _recorder.stop();
 
-      if (path == null || _currentRecordingPath == null) {
+      if (path == null) {
         setState(() => _recordingState = RecordingState.idle);
         return;
       }
@@ -148,14 +155,148 @@ class _VoiceChatWidgetState extends State<VoiceChatWidget> {
       });
 
       // Procesar el audio
-      await _processAudio(File(_currentRecordingPath!));
+      if (kIsWeb) {
+        // En web, 'path' es una URL de blob, necesitamos obtener los bytes
+        await _processAudioWeb(path);
+      } else {
+        // En plataformas nativas, usar el archivo
+        await _processAudio(File(path));
+      }
     } catch (e) {
       _showError('Error al detener grabación: $e');
       setState(() => _recordingState = RecordingState.idle);
     }
   }
 
-  /// Procesar audio grabado
+  /// Procesar audio en Web (desde blob URL)
+  Future<void> _processAudioWeb(String blobUrl) async {
+    try {
+      // 1. Obtener bytes del blob URL
+      setState(() => _statusMessage = 'Preparando audio...');
+      final response = await http.get(Uri.parse(blobUrl));
+
+      if (response.statusCode != 200) {
+        throw Exception('Error al obtener audio del blob');
+      }
+
+      final audioBytes = response.bodyBytes;
+
+      // 2. Speech to Text usando base64
+      setState(() => _statusMessage = 'Transcribiendo audio...');
+      final sttResponse = await _apiService.speechToTextBase64(
+        audioBytes,
+        'wav',
+      );
+
+      if (!sttResponse.success) {
+        throw Exception(sttResponse.error ?? 'Error en transcripción');
+      }
+
+      final userText = sttResponse.text;
+
+      // Añadir mensaje del usuario
+      if (_userId != null) {
+        setState(() {
+          _messages.add(ChatbotMessage.user(
+            userText,
+            userId: _userId!,
+            messageType: 'voice',
+          ));
+          _statusMessage = 'Generando respuesta...';
+        });
+      }
+      _scrollToBottom();
+
+      // 3. Generar respuesta
+      final botText = await _generateBotResponse(userText);
+
+      // Extraer emoción del bot response
+      String? emotion;
+      String cleanBotText = botText;
+      final emotionMatch = RegExp(r'^\(([^)]+)\)\s*').firstMatch(botText);
+      if (emotionMatch != null) {
+        emotion = emotionMatch.group(1);
+        cleanBotText = botText.substring(emotionMatch.end);
+      }
+
+      // 4. Text to Speech
+      setState(() => _statusMessage = 'Convirtiendo respuesta a audio...');
+      final ttsResponse = await _apiService.textToSpeech(cleanBotText);
+
+      if (!ttsResponse.success) {
+        throw Exception(ttsResponse.error ?? 'Error en síntesis de voz');
+      }
+
+      final audioData = ttsResponse.getAudioBytes();
+
+      // Añadir mensaje del bot
+      if (_userId != null) {
+        setState(() {
+          _messages.add(ChatbotMessage.bot(
+            cleanBotText,
+            userId: _userId!,
+            audioData: audioData,
+            messageType: 'voice',
+            emotionType: emotion,
+          ));
+          _recordingState = RecordingState.playing;
+          _statusMessage = 'Reproduciendo respuesta...';
+        });
+      }
+      _scrollToBottom();
+
+      // 5. Guardar en el backend
+      if (_userId != null) {
+        try {
+          await _chatService.saveVoiceMessage(
+            userId: _userId!,
+            userMessage: userText,
+            botResponse: botText,
+            audioDurationMs: null,
+            transcriptionConfidence: sttResponse.confidence,
+          );
+        } catch (e) {
+          print('Error al guardar mensaje de voz: $e');
+        }
+      }
+
+      // 6. Reproducir audio automáticamente
+      if (audioData != null) {
+        await _player.play(BytesSource(audioData));
+
+        _player.onPlayerComplete.listen((_) {
+          if (mounted) {
+            setState(() {
+              _recordingState = RecordingState.idle;
+              _statusMessage = 'Listo para hablar';
+            });
+          }
+        });
+      } else {
+        setState(() {
+          _recordingState = RecordingState.idle;
+          _statusMessage = 'Listo para hablar';
+        });
+      }
+    } catch (e) {
+      String errorMsg = 'Error desconocido';
+      if (e.toString().contains('Timeout')) {
+        errorMsg = 'Tiempo de espera agotado. El servidor tardó demasiado en responder.';
+      } else if (e.toString().contains('SocketException') || e.toString().contains('XMLHttpRequest')) {
+        errorMsg = 'No se pudo conectar al servidor. Verifica la URL de ngrok.';
+      } else {
+        errorMsg = 'Error al procesar: $e';
+      }
+
+      _showError(errorMsg);
+      setState(() {
+        _recordingState = RecordingState.idle;
+        _statusMessage = 'Error. Intenta de nuevo.';
+      });
+    }
+  }
+
+  /// Procesar audio grabado (plataformas nativas)
   Future<void> _processAudio(File audioFile) async {
     try {
       // 1. Speech to Text
