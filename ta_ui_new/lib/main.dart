@@ -4,8 +4,15 @@ import 'ui/screens/camera_permission_screen.dart';
 import 'ui/screens/chatbot_screen.dart';
 import 'ui/screens/avatar_screen.dart';
 import 'ui/screens/profile_screen.dart';
+import 'ui/screens/settings_screen.dart';
+import 'ui/api_endpoints.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Auto-detectar servidor al inicio
+  await ApiEndpoints.initializeAsync();
+
   runApp(const MyApp());
 }
 
@@ -30,6 +37,7 @@ class MyApp extends StatelessWidget {
         '/progress': (context) => const PlaceholderScreen("Progreso"),
         '/evaluation': (context) => const PlaceholderScreen("Evaluación"),
         '/profile': (context) => const ProfileScreen(),
+        '/settings': (context) => const SettingsScreen(),
       },
     );
   }

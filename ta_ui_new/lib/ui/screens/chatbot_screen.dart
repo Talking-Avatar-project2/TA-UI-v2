@@ -234,7 +234,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
       ),
       body: _isVoiceMode
           ? VoiceChatWidget(
-              apiUrl: 'http://192.168.18.5:5002',  // Voice API via red local
+              apiUrl: ApiEndpoints.voiceApiUrl,  // URL dinámica según plataforma
             )
           : _buildTextChatMode(),
     );
