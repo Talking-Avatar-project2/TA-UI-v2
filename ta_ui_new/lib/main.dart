@@ -8,6 +8,7 @@ import 'ui/screens/chatbot_screen.dart';
 import 'ui/screens/avatar_screen.dart';
 import 'ui/screens/profile_screen.dart';
 import 'ui/screens/settings_screen.dart';
+import 'ui/screens/progress_screen.dart';
 import 'ui/api_endpoints.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
