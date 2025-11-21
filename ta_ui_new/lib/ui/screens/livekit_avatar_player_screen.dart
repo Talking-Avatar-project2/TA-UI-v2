@@ -24,17 +24,31 @@ class _LiveKitAvatarPlayerScreenState extends State<LiveKitAvatarPlayerScreen> {
   @override
   void initState() {
     super.initState();
-    _connectToLiveKit();
+    _connect();
   }
 
-  Future<void> _connectToLiveKit() async {
+  Future<void> _connect() async {
     try {
       final room = Room();
+
+      // Escuchar eventos del Room
+      room.events.listen((event) async {
+        if (event is RoomConnectedEvent) {
+          try {
+            await room.localParticipant?.setMicrophoneEnabled(true);
+          } catch (e) {
+            debugPrint("Error al activar micrófono: $e");
+          }
+        }
+      });
 
       await room.connect(
         widget.livekitUrl,
         widget.token,
-        roomOptions: const RoomOptions(adaptiveStream: true, dynacast: true),
+        roomOptions: const RoomOptions(
+          adaptiveStream: true,
+          dynacast: true,
+        ),
       );
 
       room.addListener(_onRoomChanged);
@@ -43,9 +57,10 @@ class _LiveKitAvatarPlayerScreenState extends State<LiveKitAvatarPlayerScreen> {
         _room = room;
         _connecting = false;
       });
+
     } catch (e) {
       setState(() {
-        _error = 'Error al conectar a LiveKit: $e';
+        _error = "Error al conectar a LiveKit: $e";
         _connecting = false;
       });
     }
@@ -66,11 +81,8 @@ class _LiveKitAvatarPlayerScreenState extends State<LiveKitAvatarPlayerScreen> {
 
   Widget _buildVideo() {
     final room = _room;
-    if (room == null) {
-      return const Text('Conectando con la sala...');
-    }
+    if (room == null) return const Text("Conectando...");
 
-    // Tomamos el primer participante remoto con un video track
     for (final participant in room.remoteParticipants.values) {
       for (final pub in participant.videoTrackPublications) {
         final track = pub.track;
@@ -86,13 +98,13 @@ class _LiveKitAvatarPlayerScreenState extends State<LiveKitAvatarPlayerScreen> {
       }
     }
 
-    return const Text('Esperando video del avatar...');
+    return const Text("Esperando video del avatar...");
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Sesión LiveAvatar')),
+      appBar: AppBar(title: const Text("Sesión LiveAvatar")),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Center(
@@ -100,21 +112,19 @@ class _LiveKitAvatarPlayerScreenState extends State<LiveKitAvatarPlayerScreen> {
               ? const CircularProgressIndicator()
               : _error != null
               ? Text(
-                  _error!,
-                  style: const TextStyle(color: Colors.red),
-                  textAlign: TextAlign.center,
-                )
+            _error!,
+            style: const TextStyle(color: Colors.red),
+          )
               : Column(
-                  children: [
-                    Expanded(child: Center(child: _buildVideo())),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'Si el avatar no aparece, revisa que la sesión esté activa '
-                      'y que no hayas excedido el límite de sesiones en LiveAvatar.',
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
+            children: [
+              Expanded(child: Center(child: _buildVideo())),
+              const SizedBox(height: 12),
+              const Text(
+                "Habla con normalidad. El avatar escucha tu voz automáticamente.",
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
         ),
       ),
     );
