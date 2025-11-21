@@ -5,8 +5,11 @@ import 'package:record/record.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
 import '../models/chatbot_message.dart';
 import '../services/voice_api_service.dart';
+import '../services/chat_service.dart';
+import '../providers/auth_provider.dart';
 import '../ui/api_endpoints.dart';
 import 'recording_button.dart';
 import 'message_bubble.dart';
@@ -27,6 +30,7 @@ class VoiceChatWidget extends StatefulWidget {
 class _VoiceChatWidgetState extends State<VoiceChatWidget> {
   // Servicios
   late final VoiceApiService _apiService;
+  final ChatService _chatService = ChatService();
   final AudioRecorder _recorder = AudioRecorder();
   final AudioPlayer _player = AudioPlayer();
 
@@ -35,6 +39,7 @@ class _VoiceChatWidgetState extends State<VoiceChatWidget> {
   final List<ChatbotMessage> _messages = [];
   String? _currentRecordingPath;
   String _statusMessage = 'Listo para hablar';
+  String? _userId;
 
   // UI
   final ScrollController _scrollController = ScrollController();
@@ -43,7 +48,14 @@ class _VoiceChatWidgetState extends State<VoiceChatWidget> {
   void initState() {
     super.initState();
     _apiService = VoiceApiService(baseUrl: widget.apiUrl);
-    _checkServerConnection();
+    _initializeWidget();
+  }
+
+  /// Inicializar widget y obtener userId
+  Future<void> _initializeWidget() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    _userId = authProvider.firebaseUser?.uid;
+    await _checkServerConnection();
   }
 
   @override
@@ -157,18 +169,33 @@ class _VoiceChatWidgetState extends State<VoiceChatWidget> {
       final userText = sttResponse.text;
 
       // Añadir mensaje del usuario
-      setState(() {
-        _messages.add(ChatbotMessage.user(userText));
-        _statusMessage = 'Generando respuesta...';
-      });
+      if (_userId != null) {
+        setState(() {
+          _messages.add(ChatbotMessage.user(
+            userText,
+            userId: _userId!,
+            messageType: 'voice',
+          ));
+          _statusMessage = 'Generando respuesta...';
+        });
+      }
       _scrollToBottom();
 
       // 2. Generar respuesta (aquí puedes integrar tu lógica personalizada)
       final botText = await _generateBotResponse(userText);
 
+      // Extraer emoción del bot response
+      String? emotion;
+      String cleanBotText = botText;
+      final emotionMatch = RegExp(r'^\(([^)]+)\)\s*').firstMatch(botText);
+      if (emotionMatch != null) {
+        emotion = emotionMatch.group(1);
+        cleanBotText = botText.substring(emotionMatch.end);
+      }
+
       // 3. Text to Speech
       setState(() => _statusMessage = 'Convirtiendo respuesta a audio...');
-      final ttsResponse = await _apiService.textToSpeech(botText);
+      final ttsResponse = await _apiService.textToSpeech(cleanBotText);
 
       if (!ttsResponse.success) {
         throw Exception(ttsResponse.error ?? 'Error en síntesis de voz');
@@ -177,14 +204,38 @@ class _VoiceChatWidgetState extends State<VoiceChatWidget> {
       final audioData = ttsResponse.getAudioBytes();
 
       // Añadir mensaje del bot
-      setState(() {
-        _messages.add(ChatbotMessage.bot(botText, audioData: audioData));
-        _recordingState = RecordingState.playing;
-        _statusMessage = 'Reproduciendo respuesta...';
-      });
+      if (_userId != null) {
+        setState(() {
+          _messages.add(ChatbotMessage.bot(
+            cleanBotText,
+            userId: _userId!,
+            audioData: audioData,
+            messageType: 'voice',
+            emotionType: emotion,
+          ));
+          _recordingState = RecordingState.playing;
+          _statusMessage = 'Reproduciendo respuesta...';
+        });
+      }
       _scrollToBottom();
 
-      // 4. Reproducir audio automáticamente
+      // 4. Guardar en el backend (transcripción + respuesta)
+      if (_userId != null) {
+        try {
+          await _chatService.saveVoiceMessage(
+            userId: _userId!,
+            userMessage: userText,
+            botResponse: botText, // Con etiqueta de emoción
+            audioDurationMs: null, // TODO: calcular duración si es necesario
+            transcriptionConfidence: sttResponse.confidence,
+          );
+        } catch (e) {
+          // No mostrar error al usuario, solo log
+          print('Error al guardar mensaje de voz: $e');
+        }
+      }
+
+      // 5. Reproducir audio automáticamente
       if (audioData != null) {
         await _player.play(BytesSource(audioData));
 
@@ -229,10 +280,17 @@ class _VoiceChatWidgetState extends State<VoiceChatWidget> {
   /// Generar respuesta del bot usando la misma API que el modo texto
   Future<String> _generateBotResponse(String userText) async {
     try {
+      if (_userId == null) {
+        throw Exception('Usuario no autenticado');
+      }
+
       final response = await http.post(
         Uri.parse(ApiEndpoints.chatbotRespond),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'message': userText}),
+        body: jsonEncode({
+          'message': userText,
+          'user_id': _userId,
+        }),
       );
 
       if (response.statusCode == 200) {

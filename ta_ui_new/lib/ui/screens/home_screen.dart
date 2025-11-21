@@ -1,5 +1,8 @@
+import 'dart:async';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:ta_ui_new/models/user_model.dart';
+import 'package:ta_ui_new/services/user_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -8,195 +11,441 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  String? _profileImageUrl;
+class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
+  final UserService _userService = UserService();
+  UserModel? _userProfile;
+  
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
 
   @override
   void initState() {
     super.initState();
-    _loadProfileImage();
+    _loadUserProfile();
+    
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+    _fadeAnimation = CurvedAnimation(parent: _animationController, curve: Curves.easeOut);
+    _animationController.forward();
   }
 
-  /// Carga la URL de la foto de perfil
-  Future<void> _loadProfileImage() async {
-    final prefs = await SharedPreferences.getInstance();
-    final savedUrl = prefs.getString('profile_image_url');
-    if (savedUrl != null && mounted) {
-      setState(() {
-        _profileImageUrl = savedUrl;
-      });
-    }
-    else{
-      setState(() {
-        _profileImageUrl = null;
-      });
-    }
-  }
-
-  /// Recarga la foto cuando se vuelve a esta pantalla
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Recargar la foto cada vez que se regresa a esta pantalla
-    _loadProfileImage();
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadUserProfile() async {
+    if (!mounted) return;
+    try {
+      final profile = await _userService.getProfile();
+      if (mounted) {
+        setState(() {
+          _userProfile = profile;
+        });
+      }
+    } catch (e) {
+      // Manejo silencioso o log
+    }
+  }
+
+  Future<void> _signOut() async {
+    await FirebaseAuth.instance.signOut();
+    if (mounted) {
+      Navigator.pushReplacementNamed(context, '/login');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
-        elevation: 0, // Sin sombra
-        backgroundColor: Colors.transparent, // Fondo transparente
-        title: const Text(""),
-      ),
-      body: Column(
-        children: [
-          // Encabezado con el avatar del usuario
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        actions: [
           Container(
-            padding: const EdgeInsets.all(16.0),
+            margin: const EdgeInsets.only(right: 16),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.blue.shade200, Colors.blue.shade400],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-            ),
-            child: Column(
-              children: [
-                // Foto de perfil dinámica
-                GestureDetector(
-                  onTap: () async {
-                    // Navegar a perfil y recargar al volver
-                    await Navigator.pushNamed(context, '/profile');
-                    _loadProfileImage(); // Recargar después de volver
-                  },
-                  child: CircleAvatar(
-                    radius: 50,
-                    backgroundImage: _getProfileImage(),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                const Text(
-                  "Usuario",
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
-          ),
-
-          // Espacio para las opciones en cuadrícula
-          Expanded(
-            child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: GridView.count(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
+            child: IconButton(
+              icon: const Icon(Icons.logout_rounded, color: Colors.redAccent),
+              onPressed: _signOut,
+              tooltip: 'Cerrar Sesión',
+            ),
+          )
+        ],
+      ),
+      body: FadeTransition(
+        opacity: _fadeAnimation,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 1. Saludo Personalizado
+              Padding(
+                padding: const EdgeInsets.only(bottom: 20.0, top: 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildGridOption(
-                      context,
-                      "Chatbot",
-                      Icons.chat,
-                      Colors.blue,
-                      "/chatbot",
+                    const Text(
+                      "Hola,",
+                      style: TextStyle(fontSize: 20, color: Colors.grey),
                     ),
-                    _buildGridOption(
-                      context,
-                      "Avatar",
-                      Icons.face,
-                      Colors.green,
-                      "/camera",
-                    ),
-                    _buildGridOption(
-                      context,
-                      "Recomendaciones",
-                      Icons.favorite,
-                      Colors.red,
-                      "/recommendations",
-                    ),
-                    _buildGridOption(
-                      context,
-                      "Progreso",
-                      Icons.bar_chart,
-                      Colors.orange,
-                      "/progress",
-                    ),
-                    _buildGridOption(
-                      context,
-                      "Evaluación",
-                      Icons.assignment,
-                      Colors.purple,
-                      "/evaluation",
-                    ),
-                    _buildGridOption(
-                      context,
-                      "Perfil",
-                      Icons.person,
-                      Colors.teal,
-                      "/profile",
+                    Text(
+                      _userProfile?.fullName ?? "Bienvenido",
+                      style: const TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF2D3436),
+                      ),
                     ),
                   ],
                 ),
               ),
-            ),
+
+              // 2. Tarjeta Principal con Animación Typewriter
+              _buildProfileBentoCard(),
+
+              const SizedBox(height: 20),
+
+              // 3. Grid Bento
+              Expanded(
+                child: GridView.count(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 15,
+                  mainAxisSpacing: 15,
+                  childAspectRatio: 1.1, 
+                  children: [
+                    _buildBentoItem(
+                      title: "Chatbot",
+                      icon: Icons.chat_bubble_outline_rounded,
+                      color: Colors.blueAccent,
+                      route: "/chatbot",
+                    ),
+                    _buildBentoItem(
+                      title: "Avatar",
+                      icon: Icons.face_retouching_natural_rounded,
+                      color: Colors.green,
+                      route: "/camera",
+                    ),
+                    _buildBentoItem(
+                      title: "Para Ti",
+                      subtitle: "Recomendaciones",
+                      icon: Icons.favorite_border_rounded,
+                      color: Colors.redAccent,
+                      route: "/recommendations",
+                    ),
+                    _buildBentoItem(
+                      title: "Progreso",
+                      icon: Icons.bar_chart_rounded,
+                      color: Colors.orange,
+                      route: "/progress",
+                    ),
+                    _buildBentoItem(
+                      title: "Evaluación",
+                      icon: Icons.assignment_outlined,
+                      color: Colors.purpleAccent,
+                      route: "/evaluation",
+                    ),
+                    _buildBentoItem(
+                      title: "Ajustes",
+                      icon: Icons.settings_outlined,
+                      color: Colors.teal,
+                      route: "/profile",
+                      isDark: true, 
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 
-  /// Obtiene la imagen de perfil a mostrar
-  ImageProvider _getProfileImage() {
-    if (_profileImageUrl != null && _profileImageUrl!.isNotEmpty) {
-      return NetworkImage(_profileImageUrl!);
-    }else{
-      return const AssetImage('assets/images/profile_placeholder.png');
-    }
+  // TARJETA PRINCIPAL ACTUALIZADA
+  Widget _buildProfileBentoCard() {
+    return GestureDetector(
+      onTap: () async {
+        await Navigator.pushNamed(context, '/chatbot'); // Quizás esto debería ir al chat?
+      },
+      child: Container(
+        width: double.infinity,
+        height: 120, // Altura fija para mantener consistencia
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF6A11CB), Color(0xFF2575FC)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF2575FC).withOpacity(0.3),
+              blurRadius: 15,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            // Avatar
+            Container(
+              padding: const EdgeInsets.all(3),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.3),
+                shape: BoxShape.circle,
+              ),
+              child: CircleAvatar(
+                radius: 30,
+                backgroundColor: Colors.white,
+                backgroundImage: _userProfile?.photoUrl != null && _userProfile!.photoUrl!.isNotEmpty
+                    ? NetworkImage(_userProfile!.photoUrl!)
+                    : null,
+                child: _userProfile?.photoUrl == '' || _userProfile?.photoUrl == null
+                    ? const Icon(Icons.person, size: 30, color: Color(0xFF6A11CB))
+                    : null,
+              ),
+            ),
+            const SizedBox(width: 20),
+            
+            // Texto Animado
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    "¿Quieres...",
+                    style: TextStyle(color: Colors.white70, fontSize: 14),
+                  ),
+                  const SizedBox(height: 4),
+                  // Widget Personalizado de Máquina de Escribir
+                  _TypewriterText(
+                    texts: const [
+                      "Hablar?",
+                      "Cuestionar?",
+                      "Desahogarte?",
+                      "Está bien, aquí estoy."
+                    ],
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20, // Letra más grande para impacto
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
-  Widget _buildGridOption(
-      BuildContext context, String title, IconData icon, Color color, String route) {
+  Widget _buildBentoItem({
+    required String title,
+    String? subtitle,
+    required IconData icon,
+    required Color color,
+    required String route,
+    bool isDark = false,
+  }) {
     return GestureDetector(
       onTap: () async {
         await Navigator.pushNamed(context, route);
-        // Recargar foto si vuelve de perfil
-        if (route == '/profile') {
-          _loadProfileImage();
-        }
+        if (route == '/profile') _loadUserProfile();
       },
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
+          color: isDark ? const Color(0xFF2D3436) : Colors.white,
+          borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withValues(alpha: 0.5),
-              blurRadius: 5,
-              offset: const Offset(0, 3),
+              color: Colors.grey.withOpacity(0.08),
+              blurRadius: 15,
+              offset: const Offset(0, 5),
             ),
           ],
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 40, color: color),
-            const SizedBox(height: 10),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white.withOpacity(0.1) : color.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                size: 30,
+                color: isDark ? Colors.white : color,
               ),
             ),
+            const SizedBox(height: 12),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : Colors.black87,
+              ),
+            ),
+            if (subtitle != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isDark ? Colors.white70 : Colors.grey,
+                ),
+              ),
+            ]
           ],
         ),
       ),
+    );
+  }
+}
+
+// ==========================================
+// WIDGET PERSONALIZADO: Typewriter Text
+// ==========================================
+class _TypewriterText extends StatefulWidget {
+  final List<String> texts;
+  final TextStyle style;
+
+  const _TypewriterText({required this.texts, required this.style});
+
+  @override
+  State<_TypewriterText> createState() => _TypewriterTextState();
+}
+
+class _TypewriterTextState extends State<_TypewriterText> {
+  String _currentText = "";
+  int _currentIndex = 0;
+  int _charIndex = 0;
+  bool _isDeleting = false;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _startTyping();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _startTyping() {
+    // Velocidad de escritura: 100ms, Borrado: 50ms
+    const typingSpeed = Duration(milliseconds: 100);
+    const deletingSpeed = Duration(milliseconds: 50);
+    const pauseDuration = Duration(milliseconds: 2000); // Pausa al terminar frase
+
+    _timer = Timer.periodic(
+      _isDeleting ? deletingSpeed : typingSpeed,
+      (timer) {
+        if (!mounted) return;
+
+        final fullText = widget.texts[_currentIndex];
+
+        setState(() {
+          if (_isDeleting) {
+            // Logica de borrado
+            if (_charIndex > 0) {
+              _charIndex--;
+              _currentText = fullText.substring(0, _charIndex);
+            } else {
+              // Terminó de borrar, cambiar a siguiente palabra
+              _isDeleting = false;
+              _currentIndex = (_currentIndex + 1) % widget.texts.length;
+              timer.cancel();
+              _startTyping(); // Reiniciar timer
+            }
+          } else {
+            // Lógica de escritura
+            if (_charIndex < fullText.length) {
+              _charIndex++;
+              _currentText = fullText.substring(0, _charIndex);
+            } else {
+              // Terminó de escribir, esperar un momento
+              _isDeleting = true;
+              timer.cancel();
+              Future.delayed(pauseDuration, () {
+                if (mounted) _startTyping();
+              });
+            }
+          }
+        });
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          _currentText,
+          style: widget.style,
+        ),
+        // Cursor parpadeante simple
+        _BlinkingCursor(style: widget.style),
+      ],
+    );
+  }
+}
+
+// Cursor simple |
+class _BlinkingCursor extends StatefulWidget {
+  final TextStyle style;
+  const _BlinkingCursor({required this.style});
+  @override
+  State<_BlinkingCursor> createState() => _BlinkingCursorState();
+}
+
+class _BlinkingCursorState extends State<_BlinkingCursor> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 500))
+      ..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _controller,
+      child: Text("|", style: widget.style.copyWith(fontWeight: FontWeight.w100)),
     );
   }
 }

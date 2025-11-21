@@ -4,6 +4,7 @@ class SttResponse {
   final String text;
   final String? language;
   final double? duration;
+  final double? confidence; // Confianza de la transcripción (0.0-1.0)
   final String? error;
 
   SttResponse({
@@ -11,6 +12,7 @@ class SttResponse {
     required this.text,
     this.language,
     this.duration,
+    this.confidence,
     this.error,
   });
 
@@ -20,6 +22,7 @@ class SttResponse {
       text: json['text'] ?? '',
       language: json['language'],
       duration: json['duration']?.toDouble(),
+      confidence: json['confidence']?.toDouble(),
       error: json['error'],
     );
   }
@@ -30,6 +33,7 @@ class SttResponse {
       'text': text,
       'language': language,
       'duration': duration,
+      'confidence': confidence,
       'error': error,
     };
   }

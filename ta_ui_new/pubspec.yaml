@@ -19,6 +19,16 @@ dependencies:
   audioplayers: ^5.2.0
   shared_preferences: ^2.5.3
   image_picker: ^1.2.1
+  # Firebase
+  firebase_core: ^3.15.2
+  firebase_auth: ^5.3.3
+  cloud_firestore: ^5.6.0
+  firebase_storage: ^12.4.0
+  intl: ^0.19.0  # Para formatear fechas
+  # HTTP
+  dio: ^5.7.0
+  image: ^4.3.0  # Para comprimir
+  firebase_app_check: ^0.3.2+10
 
 dev_dependencies:
   flutter_test:

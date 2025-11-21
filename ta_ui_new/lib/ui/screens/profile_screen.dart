@@ -2,10 +2,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:image_picker/image_picker.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
-import '../api_endpoints.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../../services/user_service.dart';
+import '../../services/auth_service.dart';
+import '../../models/user_model.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -16,31 +16,41 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final ImagePicker _picker = ImagePicker();
+  final UserService _userService = UserService();
+  final AuthService _authService = AuthService();
+
   XFile? _selectedImage;
-  String? _profileImageUrl;
+  UserModel? _userProfile;
+  bool _isLoading = false;
   bool _isUploading = false;
 
   @override
   void initState() {
     super.initState();
-    _loadProfileImage();
+    _loadUserProfile();
   }
 
-  /// Carga la URL de la foto de perfil guardada
-  Future<void> _loadProfileImage() async {
-    final prefs = await SharedPreferences.getInstance();
-    final savedUrl = prefs.getString('profile_image_url');
-    if (savedUrl != null && mounted) {
-      setState(() {
-        _profileImageUrl = savedUrl;
-      });
+  /// Carga el perfil del usuario desde Firestore
+  Future<void> _loadUserProfile() async {
+    if (!mounted) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final profile = await _userService.getProfile();
+      if (mounted) {
+        setState(() {
+          _userProfile = profile;
+        });
+      }
+    } catch (e) {
+      print('Error al cargar perfil: $e');
+      _showError('Error al cargar perfil: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
-  }
-
-  /// Guarda la URL de la foto de perfil
-  Future<void> _saveProfileImageUrl(String url) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('profile_image_url', url);
   }
 
   /// Muestra opciones para seleccionar imagen
@@ -67,7 +77,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   _pickImage(ImageSource.gallery);
                 },
               ),
-              if (_profileImageUrl != null)
+              if (_userProfile?.photoUrl != null)
                 ListTile(
                   leading: const Icon(Icons.delete, color: Colors.red),
                   title: const Text('Eliminar Foto'),
@@ -93,9 +103,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       final XFile? image = await _picker.pickImage(
         source: source,
-        maxWidth: 512,  // Reducido de 800 a 512
-        maxHeight: 512, // Reducido de 800 a 512
-        imageQuality: 70, // Reducido de 85 a 70 (más compresión)
+        maxWidth: 512,
+        maxHeight: 512,
+        imageQuality: 70,
       );
 
       if (image != null) {
@@ -111,76 +121,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  /// Sube la imagen al backend
+  /// Sube la imagen al backend usando UserService
   Future<void> _uploadImage() async {
     if (_selectedImage == null) return;
-    if (!mounted) return; // Verificar si aún está montado
+    if (!mounted) return;
 
-    setState(() {
-      _isUploading = true;
-    });
+    setState(() => _isUploading = true);
 
     try {
-      // Crear multipart request
-      final uri = Uri.parse('${ApiEndpoints.baseUrl}/profile/upload-photo');
-      final request = http.MultipartRequest('POST', uri);
-
-      // Agregar headers
-      request.headers['Content-Type'] = 'multipart/form-data';
-
-      // Agregar la imagen
-      if (kIsWeb) {
-        // Para web, usar bytes
-        final bytes = await _selectedImage!.readAsBytes();
-        request.files.add(http.MultipartFile.fromBytes(
-          'photo',
-          bytes,
-          filename: 'profile.jpg',
-        ));
-      } else {
-        // Para móvil/desktop, usar path
-        request.files.add(await http.MultipartFile.fromPath(
-          'photo',
-          _selectedImage!.path,
-        ));
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        throw Exception('Usuario no autenticado');
       }
 
-      // Opcional: Agregar user_id (por ahora usuario por defecto)
-      request.fields['user_id'] = 'default_user';
+      // Convertir XFile a File (solo para mobile)
+      final File imageFile = File(_selectedImage!.path);
 
-      // Enviar request
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
+      // Subir foto usando el servicio (esto también actualiza Firestore)
+      final photoUrl = await _userService.uploadProfilePhoto(
+        imageFile,
+        user.uid,
+      );
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+      // Recargar perfil para obtener datos actualizados
+      await _loadUserProfile();
 
-        if (data['success'] == true && data['photo_url'] != null) {
-          // Guardar URL de la foto
-          final photoUrl = data['photo_url'];
-          await _saveProfileImageUrl(photoUrl);
-
-          if (mounted) {
-            setState(() {
-              _profileImageUrl = photoUrl;
-              _selectedImage = null;
-            });
-          }
-
-          _showSuccess('Foto de perfil actualizada');
-        } else {
-          throw Exception(data['error'] ?? 'Error desconocido');
-        }
-      } else {
-        throw Exception('Error del servidor: ${response.statusCode}');
+      if (mounted) {
+        setState(() {
+          _selectedImage = null;
+        });
+        _showSuccess('Foto de perfil actualizada');
       }
     } catch (e) {
+      print('Error al subir imagen: $e');
       _showError('Error al subir imagen: $e');
     } finally {
       if (mounted) {
-        setState(() {
-          _isUploading = false;
-        });
+        setState(() => _isUploading = false);
       }
     }
   }
@@ -188,34 +165,144 @@ class _ProfileScreenState extends State<ProfileScreen> {
   /// Elimina la foto de perfil
   Future<void> _removeProfileImage() async {
     try {
-      // Llamar al backend para eliminar
-      final response = await http.delete(
-        Uri.parse('${ApiEndpoints.baseUrl}/profile/delete-photo'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'user_id': 'default_user'}),
-      );
+      // Actualizar perfil sin foto
+      await _userService.updateProfile(photoUrl: '');
 
-      if (response.statusCode == 200) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.remove('profile_image_url');
+      // Recargar perfil
+      await _loadUserProfile();
 
-        if (mounted) {
-          setState(() {
-            _profileImageUrl = null;
-            _selectedImage = null;
-          });
-        }
+      if (mounted) {
+        setState(() {
+          _selectedImage = null;
+        });
         _showSuccess('Foto de perfil eliminada');
-      } else {
-        throw Exception('Error del servidor: ${response.statusCode}');
       }
     } catch (e) {
       _showError('Error al eliminar imagen: $e');
     }
   }
 
+  /// Muestra diálogo para editar nombre
+  Future<void> _showEditNameDialog() async {
+    final controller = TextEditingController(text: _userProfile?.fullName ?? '');
+
+    return showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Editar Nombre'),
+          content: TextField(
+            controller: controller,
+            decoration: const InputDecoration(
+              labelText: 'Nombre completo',
+              hintText: 'Ingresa tu nombre',
+            ),
+            textCapitalization: TextCapitalization.words,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                await _updateName(controller.text);
+              },
+              child: const Text('Guardar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Actualiza el nombre del usuario
+  Future<void> _updateName(String newName) async {
+    if (newName.trim().isEmpty) {
+      _showError('El nombre no puede estar vacío');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      await _userService.updateProfile(fullName: newName);
+      await _loadUserProfile();
+      _showSuccess('Nombre actualizado');
+    } catch (e) {
+      _showError('Error al actualizar nombre: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  /// Muestra diálogo para editar fecha de nacimiento
+  Future<void> _showEditBirthDateDialog() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _userProfile?.birthDate ?? DateTime(2000),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+      helpText: 'Selecciona tu fecha de nacimiento',
+    );
+
+    if (picked != null) {
+      await _updateBirthDate(picked);
+    }
+  }
+
+  /// Actualiza la fecha de nacimiento
+  Future<void> _updateBirthDate(DateTime newDate) async {
+    setState(() => _isLoading = true);
+
+    try {
+      await _userService.updateProfile(birthDate: newDate);
+      await _loadUserProfile();
+      _showSuccess('Fecha de nacimiento actualizada');
+    } catch (e) {
+      _showError('Error al actualizar fecha: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  /// Cerrar sesión
+  Future<void> _logout() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Cerrar Sesión'),
+          content: const Text('¿Estás seguro de que quieres cerrar sesión?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Cerrar Sesión'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm == true && mounted) {
+      await _authService.signOut();
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/login');
+      }
+    }
+  }
+
   void _showError(String message) {
-    if (!mounted) return; // No mostrar si el widget está desmontado
+    if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -226,7 +313,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showSuccess(String message) {
-    if (!mounted) return; // No mostrar si el widget está desmontado
+    if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -239,103 +326,205 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Perfil de Usuario")),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Foto de perfil
-            Center(
-              child: Stack(
-                children: [
-                  // Avatar
-                  GestureDetector(
-                    onTap: _showImageSourceDialog,
-                    child: CircleAvatar(
-                      radius: 60,
-                      backgroundImage: _getProfileImage(),
-                      child: _isUploading
-                          ? const CircularProgressIndicator(
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                            )
-                          : null,
-                    ),
-                  ),
-                  // Botón de editar
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).primaryColor,
-                        shape: BoxShape.circle,
+      appBar: AppBar(
+        title: const Text("Mi Perfil"),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: _logout,
+            tooltip: 'Cerrar Sesión',
+          ),
+        ],
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _loadUserProfile,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Foto de perfil
+                    Center(
+                      child: Stack(
+                        children: [
+                          // Avatar
+                          GestureDetector(
+                            onTap: _showImageSourceDialog,
+                            child: CircleAvatar(
+                              radius: 60,
+                              backgroundImage: _getProfileImage(),
+                              child: _isUploading
+                                  ? const CircularProgressIndicator(
+                                      valueColor:
+                                          AlwaysStoppedAnimation<Color>(Colors.white),
+                                    )
+                                  : _userProfile?.photoUrl == ''
+                                      ? const Icon(Icons.person, size: 60)
+                                      : null,
+                            ),
+                          ),
+                          // Botón de editar
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).primaryColor,
+                                shape: BoxShape.circle,
+                              ),
+                              child: IconButton(
+                                icon: const Icon(Icons.camera_alt, color: Colors.white),
+                                onPressed: _isUploading ? null : _showImageSourceDialog,
+                                tooltip: 'Cambiar foto',
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      child: IconButton(
-                        icon: const Icon(Icons.camera_alt, color: Colors.white),
-                        onPressed: _isUploading ? null : _showImageSourceDialog,
-                        tooltip: 'Cambiar foto',
-                      ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
+                    const SizedBox(height: 12),
 
-            // Texto de ayuda
-            Center(
-              child: Text(
-                'Toca la foto para cambiarla',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
+                    // Texto de ayuda
+                    Center(
+                      child: Text(
+                        'Toca la foto para cambiarla',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    // Información del perfil
+                    _buildProfileCard(
+                      icon: Icons.person,
+                      title: 'Nombre Completo',
+                      value: _userProfile?.fullName ?? 'Sin nombre',
+                      onTap: _showEditNameDialog,
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    _buildProfileCard(
+                      icon: Icons.email,
+                      title: 'Correo Electrónico',
+                      value: _userProfile?.email ?? 'Sin email',
+                      onTap: null, // Email no se puede cambiar
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    _buildProfileCard(
+                      icon: Icons.cake,
+                      title: 'Fecha de Nacimiento',
+                      value: _userProfile?.birthDate != null
+                          ? _formatDate(_userProfile!.birthDate!)
+                          : 'Sin fecha',
+                      onTap: _showEditBirthDateDialog,
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    _buildProfileCard(
+                      icon: Icons.calendar_today,
+                      title: 'Miembro desde',
+                      value: _userProfile?.createdAt != null
+                          ? _formatDate(_userProfile!.createdAt!)
+                          : 'N/A',
+                      onTap: null,
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    // Botón de cerrar sesión
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: _logout,
+                        icon: const Icon(Icons.logout),
+                        label: const Text('Cerrar Sesión'),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          backgroundColor: Colors.red[700],
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
+    );
+  }
 
-            const SizedBox(height: 32),
-
-            // Resto de información del perfil
-            const Text("Nombres:", style: TextStyle(fontSize: 16)),
-            const SizedBox(height: 5),
-            TextButton(
-              onPressed: () {},
-              child: const Text("Agregar Nombres"),
-            ),
-            const Divider(),
-
-            const Text("Correo Electrónico:", style: TextStyle(fontSize: 16)),
-            const SizedBox(height: 5),
-            TextButton(
-              onPressed: () {},
-              child: const Text("Agregar Correo"),
-            ),
-            const Divider(),
-
-            const Text("Contraseña:", style: TextStyle(fontSize: 16)),
-            const SizedBox(height: 5),
-            TextButton(
-              onPressed: () {},
-              child: const Text("Cambiar Contraseña"),
-            ),
-          ],
+  /// Construye una tarjeta de información del perfil
+  Widget _buildProfileCard({
+    required IconData icon,
+    required String title,
+    required String value,
+    VoidCallback? onTap,
+  }) {
+    return Card(
+      elevation: 2,
+      child: ListTile(
+        leading: Icon(icon, color: Theme.of(context).primaryColor),
+        title: Text(
+          title,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey[600],
+          ),
         ),
+        subtitle: Text(
+          value,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        trailing: onTap != null
+            ? Icon(Icons.edit, color: Colors.grey[600])
+            : null,
+        onTap: onTap,
       ),
     );
   }
 
   /// Obtiene la imagen de perfil a mostrar
-  ImageProvider _getProfileImage() {
+  ImageProvider? _getProfileImage() {
     // 1. Si hay imagen seleccionada (preview local)
     if (_selectedImage != null && !kIsWeb) {
       return FileImage(File(_selectedImage!.path));
     }
     // 2. Si hay URL guardada (de Firebase)
-    if (_profileImageUrl != null && _profileImageUrl!.isNotEmpty) {
-      return NetworkImage(_profileImageUrl!);
+    if (_userProfile?.photoUrl != null && _userProfile!.photoUrl!.isNotEmpty) {
+      return NetworkImage(_userProfile!.photoUrl!);
     }
-    // 3. Imagen por defecto
-    return const AssetImage('assets/images/profile_placeholder.png');
+    // 3. Sin imagen
+    return null;
+  }
+
+  /// Formatea una fecha
+  String _formatDate(DateTime date) {
+    final months = [
+      'Enero',
+      'Febrero',
+      'Marzo',
+      'Abril',
+      'Mayo',
+      'Junio',
+      'Julio',
+      'Agosto',
+      'Septiembre',
+      'Octubre',
+      'Noviembre',
+      'Diciembre'
+    ];
+    return '${date.day} de ${months[date.month - 1]} de ${date.year}';
   }
 }
