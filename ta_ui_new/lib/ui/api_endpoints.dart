@@ -18,7 +18,7 @@ class ApiEndpoints {
     // Fallback a URL por defecto según plataforma
     String url;
     if (kIsWeb) {
-      url = 'http://127.0.0.1:5000';
+      url = 'https://api.danassistantassistant.website/';
     } else if (Platform.isAndroid) {
       url = const String.fromEnvironment(
         'API_URL',
