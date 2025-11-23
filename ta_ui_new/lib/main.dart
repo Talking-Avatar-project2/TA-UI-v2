@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:ta_ui_new/ui/screens/evaluation_screen.dart';
 import 'package:ta_ui_new/ui/screens/forgot_password_screen.dart';
 import 'package:ta_ui_new/ui/screens/login_screen.dart';
+import 'package:ta_ui_new/ui/screens/recommendations_screen.dart';
 import 'package:ta_ui_new/ui/screens/register_screen.dart';
 import 'ui/screens/home_screen.dart';
 import 'ui/screens/camera_permission_screen.dart';
@@ -57,11 +59,10 @@ class MyApp extends StatelessWidget {
         '/chatbot': (context) => const ChatbotScreen(),
         '/camera': (context) => const CameraPermissionScreen(),
         '/avatar': (context) => const AvatarScreen(),
-        '/recommendations': (context) =>
-        const PlaceholderScreen("Recomendaciones"),
+        '/recommendations': (context) => const RecommendationsScreen(),
         '/progress': (context) => const ProgressScreen(),
         '/evaluation': (context) =>
-        const PlaceholderScreen("Evaluación"),
+        const EvaluationScreen(),
         '/profile': (context) => const ProfileScreen(),
         '/settings': (context) => const SettingsScreen(),
         '/login': (_) => LoginScreen(),
