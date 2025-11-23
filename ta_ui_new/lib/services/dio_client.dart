@@ -4,7 +4,7 @@ import 'auth_service.dart';
 class DioClient {
   static final Dio _dio = Dio(
     BaseOptions(
-      baseUrl: 'https://b8a500371b41.ngrok-free.app',  // Backend URL
+      baseUrl: 'https://api.danassistantassistant.website/',  // Backend URL
       connectTimeout: Duration(seconds: 30),
       receiveTimeout: Duration(seconds: 30),
       headers: {'Content-Type': 'application/json'},
