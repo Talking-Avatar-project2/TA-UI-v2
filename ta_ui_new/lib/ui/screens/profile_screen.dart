@@ -134,12 +134,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         throw Exception('Usuario no autenticado');
       }
 
-      // Convertir XFile a File (solo para mobile)
-      final File imageFile = File(_selectedImage!.path);
-
       // Subir foto usando el servicio (esto también actualiza Firestore)
       final photoUrl = await _userService.uploadProfilePhoto(
-        imageFile,
+        _selectedImage!,
         user.uid,
       );
 

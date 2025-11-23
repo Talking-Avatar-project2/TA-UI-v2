@@ -1,8 +1,10 @@
 import 'package:dio/dio.dart';
+import 'package:image_picker/image_picker.dart';
 import 'dio_client.dart';
 import '../models/user_model.dart';
 import 'dart:io';
 import 'package:image/image.dart' as img;
+import 'package:flutter/foundation.dart';
 
 class UserService {
   final Dio _dio = DioClient.instance;
@@ -81,17 +83,31 @@ class UserService {
   }
 
   // CP022: Subir foto de perfil
-  Future<String> uploadProfilePhoto(File imageFile, String userId) async {
+  Future<String> uploadProfilePhoto(XFile imageFile, String userId) async {
     try {
-      // Comprimir imagen
-      final compressedImage = await _compressImage(imageFile);
+      String filename = 'profile_$userId.jpg';
+      MultipartFile multipartFile;
+      if (kIsWeb) {
+        // Para web, leer bytes directamente
+        Uint8List bytes = await imageFile.readAsBytes();
+        Uint8List compressedBytes = _compressBytes(bytes);
+        multipartFile = MultipartFile.fromBytes(
+          compressedBytes,
+          filename: filename,
+        );
+      } else {
+        // Para celular, usar el sistema de archivos
+        File fileMobile = File(imageFile.path);
+        File compressed = await _compressFileMobile(fileMobile);
+        multipartFile = await MultipartFile.fromFile(
+          compressed.path,
+          filename: filename,
+        );
+      }
 
       // Crear FormData
       final formData = FormData.fromMap({
-        'photo': await MultipartFile.fromFile(
-          compressedImage.path,
-          filename: 'profile_$userId.jpg',
-        ),
+        'photo': multipartFile,
         'user_id': userId,
       });
 
@@ -115,27 +131,27 @@ class UserService {
     }
   }
 
-  // Helper: Comprimir imagen
-  Future<File> _compressImage(File file) async {
-    final bytes = await file.readAsBytes();
+  Uint8List _compressBytes(Uint8List bytes) {
     final image = img.decodeImage(bytes);
+    if (image == null) return bytes;
+    if (image.width > 800 || image.height > 800) {
+      final resized = img.copyResize(
+        image,
+        width: image.width > 800 ? 800 : image.width,
+        height: image.height > 800 ? 800 : image.height,
+      );
+      return Uint8List.fromList(img.encodeJpg(resized, quality: 85));
+    }
+    return Uint8List.fromList(img.encodeJpg(image, quality: 85));
+  }
 
-    if (image == null) throw 'No se pudo procesar la imagen';
-
-    // Redimensionar a máximo 800x800
-    final resized = img.copyResize(
-      image,
-      width: image.width > 800 ? 800 : image.width,
-      height: image.height > 800 ? 800 : image.height,
-    );
-
-    // Comprimir como JPEG
-    final compressed = img.encodeJpg(resized, quality: 85);
-
-    // Guardar archivo comprimido
-    final compressedFile = File('${file.path}_compressed.jpg');
-    await compressedFile.writeAsBytes(compressed);
-
+  Future<File> _compressFileMobile(File file) async {
+    final bytes = await file.readAsBytes();
+    final compressedBytes = _compressBytes(bytes); // Reutilizamos la lógica de arriba
+    final newPath = '${file.path}_compressed.jpg';
+    final compressedFile = File(newPath);
+    await compressedFile.writeAsBytes(compressedBytes);
+    
     return compressedFile;
   }
 
