@@ -47,6 +47,8 @@ flutter run -d <ID_DISPOSITIVO> --dart-define=API_URL=http://10.0.2.2:5000
 Android (Dispositivo físico):
 flutter run -d <ID_DISPOSITIVO> --dart-define=API_URL=http://<IP_DEL_BACKEND>:5000
 
+https://www.youtube.com/watch?v=nA3JtWMoyUs
+
 ---
 
 ## Configuración del backend
