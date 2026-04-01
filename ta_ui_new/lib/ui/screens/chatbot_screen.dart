@@ -234,7 +234,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
       ),
       body: _isVoiceMode
           ? VoiceChatWidget(
-              apiUrl: 'http://192.168.18.5:5002',  // Voice API via red local
+              apiUrl: 'https://b7fe5d0e3d59.ngrok-free.app',  // Voice API via red local
             )
           : _buildTextChatMode(),
     );

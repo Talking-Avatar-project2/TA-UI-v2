@@ -1,16 +1,27 @@
-class ApiEndpoints {
-  // Para emulador Android usa: http://10.0.2.2:5000
-  // Para dispositivo físico usa: http://192.168.18.5:5000
-  // Para iOS simulator usa: http://localhost:5000
-  static const String baseUrl = "http://192.168.18.5:5000"; // IP de red local - backend corriendo en Windows
-  //static const String baseUrl = "http://10.0.2.2:5000"; // Descomentar para emulador Android
-  //static const String baseUrl = "http://172.17.242.140:5000"; // WSL IP - NO USAR (timeouts)
+// lib/ui/api_endpoints.dart
 
-  // Endpoints del backend
-  static const String chatbotRespond = "$baseUrl/chatbot/respond";
-  static const String avatarExpress = "$baseUrl/avatar/express";
-  static const String startAvatar = "$baseUrl/avatar/start-avatar"; // Nuevo endpoint
-  static const String facialRecognition = "$baseUrl/facial_recognition/recognize";
-  static const String facialRecognitionStream = "$baseUrl/facial_recognition/stream";
-  static const String detectEmotionYolo = "$baseUrl/recognition/detect-emotion-yolo";
+class ApiEndpoints {
+  // Cambia esta URL según dónde corra tu backend
+  //   - Web en misma PC: "http://127.0.0.1:5000"
+  //   - Emulador Android: "http://10.0.2.2:5000"
+  //   - Dispositivo físico: IP de tu PC, ej: "http://192.168.1.36:5000"
+  static const String baseUrl = 'http://192.168.1.36:5000';
+
+  // Chatbot
+  static const String chatbotRespond = '$baseUrl/chatbot/respond';
+
+  // Avatar - LiveAvatar 4.0
+  static const String avatarSessionToken = '$baseUrl/avatar/session/token';
+  static const String avatarSessionStart = '$baseUrl/avatar/session/start';
+  static const String avatarSessionStop  = '$baseUrl/avatar/session/stop';
+  static const String avatarSendText     = '$baseUrl/avatar/send-text';
+
+  // (Opcional) listar recursos si luego los usas desde el frontend
+  static const String avatarListAvatars  = '$baseUrl/avatar/avatars';
+  static const String avatarListVoices   = '$baseUrl/avatar/voices';
+  static const String avatarListContexts = '$baseUrl/avatar/contexts';
+
+  // Reconocimiento facial (rutas reales del backend)
+  static const String facialRecognition       = '$baseUrl/recognition/recognize';
+  static const String facialRecognitionStream = '$baseUrl/recognition/stream';
 }
